@@ -1,4 +1,5 @@
 using System;
+using UnityEditor;
 using UnityEngine;
 
 [Serializable]
@@ -6,6 +7,8 @@ using UnityEngine;
 [RequireComponent(typeof(CircleCollider2D))]
 public class Point : MonoBehaviour
 {
+    public int Index { get; set; }
+
     private SpriteRenderer _spriteRenderer;
     private Camera _camera;
 
@@ -35,5 +38,10 @@ public class Point : MonoBehaviour
     {
         if (!(other is Point p)) return false;
         return transform.position.Equals(p.transform.position);
+    }
+
+    private void OnDrawGizmos()
+    {
+        Handles.Label(transform.position, name);
     }
 }

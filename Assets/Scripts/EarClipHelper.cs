@@ -1,7 +1,4 @@
-using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
 
 public class EarClipHelper
@@ -9,10 +6,13 @@ public class EarClipHelper
     // Source: https://stackoverflow.com/a/9755252
     public static bool IsInsideTriangle(Triangle triangle, Point point)
     {
-        var p = point.transform.position;
-        var a = triangle.a.transform.position;
-        var b = triangle.b.transform.position;
-        var c = triangle.c.transform.position;
+        Vector2 p = point.transform.position;
+        Vector2 a = triangle.a.transform.position;
+        Vector2 b = triangle.b.transform.position;
+        Vector2 c = triangle.c.transform.position;
+
+        if (p == a || p == b || p == c)
+            return false;
 
         var as_x = p.x - a.x;
         var as_y = p.y - a.y;
@@ -28,11 +28,10 @@ public class EarClipHelper
         return true;
     }
 
-    public static bool IsConvex(LinkedListNode<Point> v, LinkedList<Point> linked)
+    public static bool IsConvex(LinkedListNode<Point> b, LinkedList<Point> polygon)
     {
-        var a = v.Previous ?? linked.Last;
-        var b = v;
-        var c = v.Next ?? linked.First;
+        var a = b.Previous ?? polygon.Last;
+        var c = b.Next ?? polygon.First;
 
         var ba = (Vector2) a.Value.transform.position - (Vector2) b.Value.transform.position;
         var bc = (Vector2) c.Value.transform.position - (Vector2) b.Value.transform.position;
@@ -43,119 +42,65 @@ public class EarClipHelper
         return inner < Mathf.PI * Mathf.Rad2Deg;
     }
 
-    public static List<Triangle> Solve(List<Point> points)
+    public static bool TriangleContainsPoints(Triangle triangle, LinkedList<Point> polygon)
     {
-        var result = new List<Triangle>();
+        var b = polygon.First;
 
-        var linked = new LinkedList<Point>(points);
-        var convex = new List<LinkedListNode<Point>>();
-        var concave = new List<LinkedListNode<Point>>();
-
+        while (b != null)
         {
-            var p = linked.First;
-            while (p != null)
+            if (!IsConvex(b, polygon))
             {
-                if (IsConvex(p, linked))
-                    convex.Add(p);
-                else
-                    concave.Add(p);
-
-                p = p.Next;
+                if (IsInsideTriangle(triangle, b.Value))
+                    return true;
             }
+
+            b = b.Next;
         }
 
-        var ears = new LinkedList<LinkedListNode<Point>>();
+        return false;
+    }
 
-        foreach (var p in convex)
+    public static List<int> Solve(List<Point> points)
+    {
+        var result = new List<int>();
+        var polygon = new LinkedList<Point>(points);
+
+        while (polygon.Count >= 3)
         {
-            if (IsEar(p, concave, linked))
-                ears.AddLast(p);
-        }
+            var b = polygon.First;
+            bool hasRemovedEar = false;
 
-        while (ears.Count > 0)
-        {
-            var ear = ears.First.Value;
-            ears.RemoveFirst();
+            for (int i = 0; i < polygon.Count; i++)
+            {
+                var a = b.Previous ?? polygon.Last;
+                var c = b.Next ?? polygon.First;
 
-            var a = ear.Previous ?? linked.Last;
-            var b = ear;
-            var c = ear.Next ?? linked.First;
+                var triangle = new Triangle(a.Value, b.Value, c.Value);
 
-            result.Add(new Triangle(a.Value, b.Value, c.Value));
+                if (IsConvex(b, polygon))
+                {
+                    if (!TriangleContainsPoints(triangle, polygon))
+                    {
+                        polygon.Remove(b);
+                        result.Add(a.Value.Index);
+                        result.Add(b.Value.Index);
+                        result.Add(c.Value.Index);
 
-            convex.Remove(ear);
-            linked.Remove(ear);
+                        hasRemovedEar = true;
+                        break;
+                    }
+                }
 
-            if (linked.Count < 3)
-                break;
+                b = c; // Move to next vertex
+            }
 
-            ReconfigureAdjacentVertex(a, convex, concave, ears, linked);
-            ReconfigureAdjacentVertex(c, convex, concave, ears, linked);
+            if (!hasRemovedEar)
+            {
+                Debug.LogError("Triangulation error");
+                return result;
+            }
         }
 
         return result;
-    }
-
-    private static void ReconfigureAdjacentVertex(LinkedListNode<Point> v, List<LinkedListNode<Point>> convex, List<LinkedListNode<Point>> concave, LinkedList<LinkedListNode<Point>> ears, LinkedList<Point> linked)
-    {
-        var a = v.Previous ?? linked.Last;
-        var b = v;
-        var c = v.Next ?? linked.First;
-
-        //If the adjacent vertex was reflect...
-        if (concave.Contains(v))
-        {
-            //it may now be convex...
-            if (IsConvex(v, linked))
-            {
-                concave.Remove(v);
-                convex.Add(v);
-
-                //and possible a new ear
-                if (IsEar(v, concave, linked))
-                    ears.AddLast(v);
-            }
-        }
-        //If an adjacent vertex was convex, it will always still be convex
-        else
-        {
-            bool isEar = IsEar(v, concave, linked);
-
-            //This vertex was an ear but is no longer an ear
-            if (ears.Contains(v) && !isEar)
-            {
-                ears.Remove(v);
-            }
-            //This vertex wasn't an ear but has now become an ear
-            else if (isEar)
-            {
-                ears.AddLast(v);
-            }
-        }
-    }
-
-    private static bool IsEar(LinkedListNode<Point> p, List<LinkedListNode<Point>> concave, LinkedList<Point> linked)
-    {
-        var a = p.Previous ?? linked.Last;
-        var b = p;
-        var c = p.Next ?? linked.First;
-
-        var triangle = new Triangle(a.Value, b.Value, c.Value);
-
-        foreach (var other in concave)
-        {
-            if (other.Value.Equals(a.Value) || other.Value.Equals(b.Value) || other.Value.Equals(c.Value))
-                continue;
-
-            if (IsInsideTriangle(triangle, other.Value))
-                return false;
-        }
-
-        return true;
-    }
-
-    public static int Modulo(int n, int m)
-    {
-        return (n % m + m) % m;
     }
 }
