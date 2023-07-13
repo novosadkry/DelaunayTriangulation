@@ -1,47 +1,29 @@
 using System;
-using UnityEditor;
 using UnityEngine;
 
 [Serializable]
-[RequireComponent(typeof(SpriteRenderer))]
-[RequireComponent(typeof(CircleCollider2D))]
-public class Point : MonoBehaviour
+public class Point : ICloneable
 {
     public int Index { get; set; }
+    public Vector3 Position { get; set; }
 
-    private SpriteRenderer _spriteRenderer;
-    private Camera _camera;
-
-    private void Awake()
+    public bool Equals(Point other)
     {
-        _camera = Camera.main;
-        _spriteRenderer = GetComponent<SpriteRenderer>();
+        return Position.Equals(other.Position);
     }
 
-    private void OnMouseUp()
+    public override bool Equals(object obj)
     {
-        _spriteRenderer.color = Color.white;
+        return obj is Point other && Equals(other);
     }
 
-    private void OnMouseDown()
+    public override int GetHashCode()
     {
-        _spriteRenderer.color = Color.gray;
+        return Position.GetHashCode();
     }
 
-    private void OnMouseDrag()
+    public object Clone()
     {
-        var screenPos = Input.mousePosition;
-        transform.position = (Vector2) _camera.ScreenToWorldPoint(screenPos);
-    }
-
-    public override bool Equals(object other)
-    {
-        if (!(other is Point p)) return false;
-        return transform.position.Equals(p.transform.position);
-    }
-
-    private void OnDrawGizmos()
-    {
-        Handles.Label(transform.position, name);
+        return MemberwiseClone();
     }
 }

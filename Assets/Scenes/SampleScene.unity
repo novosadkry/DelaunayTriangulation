@@ -151,7 +151,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 8149789}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e4d567ad50a35b347b71d8fb5bcca29d, type: 3}
+  m_Script: {fileID: 11500000, guid: 9b17e7fd6d2d4363afb4c1934650f406, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
 --- !u!58 &8149791
@@ -263,7 +263,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 140132222}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e4d567ad50a35b347b71d8fb5bcca29d, type: 3}
+  m_Script: {fileID: 11500000, guid: 9b17e7fd6d2d4363afb4c1934650f406, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
 --- !u!58 &140132224
@@ -375,7 +375,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 211649733}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e4d567ad50a35b347b71d8fb5bcca29d, type: 3}
+  m_Script: {fileID: 11500000, guid: 9b17e7fd6d2d4363afb4c1934650f406, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
 --- !u!58 &211649735
@@ -487,7 +487,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 479139450}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e4d567ad50a35b347b71d8fb5bcca29d, type: 3}
+  m_Script: {fileID: 11500000, guid: 9b17e7fd6d2d4363afb4c1934650f406, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
 --- !u!58 &479139452
@@ -565,7 +565,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 479139450}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 1.38, y: -0.12, z: 0}
+  m_LocalPosition: {x: 0.52, y: 1.2, z: 0}
   m_LocalScale: {x: 0.3, y: 0.3, z: 0.3}
   m_Children: []
   m_Father: {fileID: 0}
@@ -599,7 +599,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 524424255}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e4d567ad50a35b347b71d8fb5bcca29d, type: 3}
+  m_Script: {fileID: 11500000, guid: 9b17e7fd6d2d4363afb4c1934650f406, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
 --- !u!58 &524424257
@@ -794,7 +794,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 1168765980}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e4d567ad50a35b347b71d8fb5bcca29d, type: 3}
+  m_Script: {fileID: 11500000, guid: 9b17e7fd6d2d4363afb4c1934650f406, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
 --- !u!58 &1168765982
@@ -906,7 +906,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 1399310171}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e4d567ad50a35b347b71d8fb5bcca29d, type: 3}
+  m_Script: {fileID: 11500000, guid: 9b17e7fd6d2d4363afb4c1934650f406, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
 --- !u!58 &1399310173
@@ -984,7 +984,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1399310171}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0.46, y: 1.17, z: 0}
+  m_LocalPosition: {x: 1.56, y: 0.19, z: 0}
   m_LocalScale: {x: 0.3, y: 0.3, z: 0.3}
   m_Children: []
   m_Father: {fileID: 0}
@@ -1018,7 +1018,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 1467456328}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e4d567ad50a35b347b71d8fb5bcca29d, type: 3}
+  m_Script: {fileID: 11500000, guid: 9b17e7fd6d2d4363afb4c1934650f406, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
 --- !u!58 &1467456330
@@ -1130,7 +1130,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 1599047104}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e4d567ad50a35b347b71d8fb5bcca29d, type: 3}
+  m_Script: {fileID: 11500000, guid: 9b17e7fd6d2d4363afb4c1934650f406, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
 --- !u!58 &1599047106
@@ -1243,18 +1243,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 441e7d0989a634342bde6260d52b0017, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  points:
+  hullHandlers:
   - {fileID: 1168765981}
   - {fileID: 1599047105}
   - {fileID: 1467456329}
   - {fileID: 211649734}
   - {fileID: 140132223}
   - {fileID: 8149790}
+  holeHandlers:
   - {fileID: 524424256}
   - {fileID: 479139451}
   - {fileID: 1399310172}
-  - {fileID: 524424256}
-  - {fileID: 8149790}
   meshFilter: {fileID: 1933667787}
 --- !u!4 &1792087852
 Transform:

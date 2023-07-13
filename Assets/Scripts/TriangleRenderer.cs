@@ -20,9 +20,9 @@ public class TriangleRenderer : MonoBehaviour
         for (var i = 0; i < triangles.Count; i++)
         {
             var triangle = triangles[i];
-            positions[i * 3 + 0] = triangle[0].transform.position;
-            positions[i * 3 + 1] = triangle[1].transform.position;
-            positions[i * 3 + 2] = triangle[2].transform.position;
+            positions[i * 3 + 0] = triangle[0].Position;
+            positions[i * 3 + 1] = triangle[1].Position;
+            positions[i * 3 + 2] = triangle[2].Position;
         }
 
         _lineRenderer.positionCount = positionCount;
