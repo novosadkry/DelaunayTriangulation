@@ -61,7 +61,7 @@ public class EarClipHelper
 
             var q = Quaternion.FromToRotation(n, Vector3.forward);
 
-            var bProjected = (Point)bNode.Value.Clone();
+            var bProjected = bNode.Value;
             bProjected.Position = q * b;
             projected.AddLast(bProjected);
 
