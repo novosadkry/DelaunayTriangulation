@@ -4,7 +4,7 @@ using UnityEngine;
 public class EarClipHelper
 {
     // Source: https://stackoverflow.com/a/9755252
-    public static bool IsInsideTriangle(Triangle triangle, Point point)
+    private static bool IsInsideTriangle(Triangle triangle, Point point)
     {
         Vector2 p = point.Position;
         Vector2 a = triangle.a.Position;
@@ -28,7 +28,7 @@ public class EarClipHelper
         return true;
     }
 
-    public static bool IsConvex(LinkedListNode<Point> b, LinkedList<Point> polygon)
+    private static bool IsConvex(LinkedListNode<Point> b, LinkedList<Point> polygon)
     {
         var a = b.Previous ?? polygon.Last;
         var c = b.Next ?? polygon.First;
@@ -42,7 +42,7 @@ public class EarClipHelper
         return inner < Mathf.PI * Mathf.Rad2Deg;
     }
 
-    public static LinkedList<Point> ProjectPolygon2D(LinkedList<Point> polygon)
+    private static LinkedList<Point> ProjectPolygon2D(LinkedList<Point> polygon)
     {
         var projected = new LinkedList<Point>();
         var bNode = polygon.First;
@@ -57,6 +57,8 @@ public class EarClipHelper
             var c = cNode.Value.Position;
 
             var n = Vector3.Cross(a - b, c - b);
+            n *= IsConvex(bNode, polygon) ? 1 : -1;
+
             var q = Quaternion.FromToRotation(n, Vector3.forward);
 
             var bProjected = (Point)bNode.Value.Clone();
@@ -69,7 +71,7 @@ public class EarClipHelper
         return projected;
     }
 
-    public static bool TriangleContainsPoints(Triangle triangle, LinkedList<Point> polygon)
+    private static bool TriangleContainsPoints(Triangle triangle, LinkedList<Point> polygon)
     {
         var b = polygon.First;
 
@@ -87,40 +89,54 @@ public class EarClipHelper
         return false;
     }
 
-    public static LinkedList<Point> CombineHullWithHole(List<Point> hull, List<Point> hole)
+    private static LinkedList<Point> CombineHullWithHole(LinkedList<Point> hull, LinkedList<Point> hole)
     {
-        var polygon = new LinkedList<Point>(hull);
+        var hullProjected = ProjectPolygon2D(hull);
+        var holeProjected = ProjectPolygon2D(hole);
 
-        foreach (var point in hole)
-            polygon.AddLast(point);
+        var polygon = new LinkedList<Point>(hullProjected);
 
-        var projected = ProjectPolygon2D(polygon);
-        polygon.Clear();
-
-        var firstHoleNode = projected.First;
-        for (int i = 0; i < hull.Count; i++)
+        var bridgeNode = GetHoleBridgePoint(polygon.Last.Value, hole);
+        for (int i = 0; i <= hole.Count; i++)
         {
-            polygon.AddLast(firstHoleNode!.Value);
-            firstHoleNode = firstHoleNode.Next;
+            polygon.AddLast(bridgeNode!.Value);
+            bridgeNode = bridgeNode.Previous ?? holeProjected.Last;
         }
 
-        var lastHullNode = projected.Last;
-        for (int i = 0; i < hole.Count; i++)
-        {
-            polygon.AddLast(lastHullNode!.Value);
-            lastHullNode = lastHullNode.Previous;
-        }
-
-        polygon.AddLast(projected.Last.Value);
-        polygon.AddLast(lastHullNode!.Value);
+        polygon.AddLast(hullProjected.Last.Value);
 
         return polygon;
+    }
+
+    private static LinkedListNode<Point> GetHoleBridgePoint(Point hullPoint, LinkedList<Point> hole)
+    {
+        var minDist = float.MaxValue;
+        LinkedListNode<Point> closest = null;
+
+        var node = hole.First;
+        for (int i = 0; i < hole.Count; i++)
+        {
+            var holePoint = node!.Value;
+            var dist = (holePoint.Position - hullPoint.Position).sqrMagnitude;
+
+            if (dist < minDist)
+            {
+                minDist = dist;
+                closest = node;
+            }
+
+            node = node.Next;
+        }
+
+        return closest;
     }
 
     public static List<int> Solve(List<Point> hull, List<Point> hole)
     {
         var result = new List<int>();
-        var polygon = CombineHullWithHole(hull, hole);
+        var polygon = CombineHullWithHole(
+            new LinkedList<Point>(hull),
+            new LinkedList<Point>(hole));
 
         while (polygon.Count >= 3)
         {
