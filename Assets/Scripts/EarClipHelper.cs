@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 public class EarClipHelper
@@ -28,13 +29,10 @@ public class EarClipHelper
         return true;
     }
 
-    private static bool IsConvex(LinkedListNode<Point> b, LinkedList<Point> polygon)
+    private static bool IsConvex(Triangle triangle)
     {
-        var a = b.Previous ?? polygon.Last;
-        var c = b.Next ?? polygon.First;
-
-        var ba = (Vector2) a.Value.Position - (Vector2) b.Value.Position;
-        var bc = (Vector2) c.Value.Position - (Vector2) b.Value.Position;
+        var ba = triangle.a.Position - triangle.b.Position;
+        var bc = triangle.c.Position - triangle.b.Position;
 
         var inner = Vector2.SignedAngle(ba, bc);
         if (inner < 0) inner += 360;
@@ -42,33 +40,44 @@ public class EarClipHelper
         return inner < Mathf.PI * Mathf.Rad2Deg;
     }
 
-    private static LinkedList<Point> ProjectPolygon2D(LinkedList<Point> polygon)
+    private static LinkedList<Point> ProjectPolygon2D(LinkedList<Point> polygon, Vector3 normal)
     {
         var projected = new LinkedList<Point>();
-        var bNode = polygon.First;
 
+        var bNode = polygon.First;
         for (int i = 0; i < polygon.Count; i++)
         {
-            var aNode = bNode.Previous ?? polygon.Last;
-            var cNode = bNode.Next ?? polygon.First;
-
-            var a = aNode.Value.Position;
             var b = bNode.Value.Position;
-            var c = cNode.Value.Position;
-
-            var n = Vector3.Cross(a - b, c - b);
-            n *= IsConvex(bNode, polygon) ? 1 : -1;
-
-            var q = Quaternion.FromToRotation(n, Vector3.forward);
+            var q = Quaternion.FromToRotation(normal, Vector3.back);
 
             var bProjected = bNode.Value;
             bProjected.Position = q * b;
             projected.AddLast(bProjected);
 
-            bNode = cNode;
+            bNode = bNode.Next ?? polygon.First;
         }
 
         return projected;
+    }
+
+    private static Vector3 GetPolygonNormal(LinkedList<Point> polygon)
+    {
+        var normal = Vector3.zero;
+        var points = polygon.ToArray();
+
+        for (var i = 0; i < points.Length; i++)
+        {
+            var j = (i + 1) % points.Length;
+
+            var a = points[i].Position;
+            var b = points[j].Position;
+
+            normal.x += (a.y - b.y) * (a.z + b.z);
+            normal.y += (a.z - b.z) * (a.x + b.x);
+            normal.z += (a.x - b.x) * (a.y + b.y);
+        }
+
+        return normal;
     }
 
     private static bool TriangleContainsPoints(Triangle triangle, LinkedList<Point> polygon)
@@ -77,7 +86,11 @@ public class EarClipHelper
 
         while (b != null)
         {
-            if (!IsConvex(b, polygon))
+            var a = b.Previous ?? polygon.Last;
+            var c = b.Next ?? polygon.First;
+            var tri = new Triangle(a.Value, b.Value, c.Value);
+
+            if (!IsConvex(tri))
             {
                 if (IsInsideTriangle(triangle, b.Value))
                     return true;
@@ -91,41 +104,57 @@ public class EarClipHelper
 
     private static LinkedList<Point> CombineHullWithHole(LinkedList<Point> hull, LinkedList<Point> hole)
     {
-        var hullProjected = ProjectPolygon2D(hull);
-        var holeProjected = ProjectPolygon2D(hole);
+        var polygon = new LinkedList<Point>(hull);
+        var normal = GetPolygonNormal(polygon);
 
-        var polygon = new LinkedList<Point>(hullProjected);
+        foreach (var point in hole)
+            polygon.AddLast(point);
 
-        var bridgeNode = GetHoleBridgePoint(polygon.Last.Value, hole);
+        var projected = ProjectPolygon2D(polygon, normal);
+        polygon.Clear();
+
+        // Add only projected hull points
+        var hullNode = projected.First;
+        for (int i = 0; i < hull.Count; i++)
+        {
+            polygon.AddLast(hullNode!.Value);
+            hullNode = hullNode.Next;
+        }
+
+        // At this point, hullNode contains first hole node
+        // so we take a step back
+        hullNode = hullNode!.Previous!;
+
+        // Get best bridge node and connect hole vertices
+        var bridgeNode = GetHoleBridgePoint(hullNode);
         for (int i = 0; i <= hole.Count; i++)
         {
             polygon.AddLast(bridgeNode!.Value);
-            bridgeNode = bridgeNode.Previous ?? holeProjected.Last;
+            bridgeNode = bridgeNode.Next ?? hullNode.Next;
         }
 
-        polygon.AddLast(hullProjected.Last.Value);
+        polygon.AddLast(hullNode.Value);
 
         return polygon;
     }
 
-    private static LinkedListNode<Point> GetHoleBridgePoint(Point hullPoint, LinkedList<Point> hole)
+    private static LinkedListNode<Point> GetHoleBridgePoint(LinkedListNode<Point> hullNode)
     {
         var minDist = float.MaxValue;
         LinkedListNode<Point> closest = null;
 
-        var node = hole.First;
-        for (int i = 0; i < hole.Count; i++)
+        var holeNode = hullNode.Next;
+        while (holeNode != null)
         {
-            var holePoint = node!.Value;
-            var dist = (holePoint.Position - hullPoint.Position).sqrMagnitude;
+            var dist = (holeNode.Value.Position - hullNode.Value.Position).sqrMagnitude;
 
             if (dist < minDist)
             {
                 minDist = dist;
-                closest = node;
+                closest = holeNode;
             }
 
-            node = node.Next;
+            holeNode = holeNode.Next;
         }
 
         return closest;
@@ -147,12 +176,11 @@ public class EarClipHelper
             {
                 var a = b.Previous ?? polygon.Last;
                 var c = b.Next ?? polygon.First;
+                var tri = new Triangle(a.Value, b.Value, c.Value);
 
-                var triangle = new Triangle(a.Value, b.Value, c.Value);
-
-                if (IsConvex(b, polygon))
+                if (IsConvex(tri))
                 {
-                    if (!TriangleContainsPoints(triangle, polygon))
+                    if (!TriangleContainsPoints(tri, polygon))
                     {
                         polygon.Remove(b);
                         result.Add(a.Value.Index);
