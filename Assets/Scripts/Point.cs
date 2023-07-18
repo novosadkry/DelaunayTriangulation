@@ -12,4 +12,19 @@ public struct Point
         Index = index;
         Position = position;
     }
+
+    public bool Equals(Point other)
+    {
+        return Position.Equals(other.Position);
+    }
+
+    public override bool Equals(object obj)
+    {
+        return obj is Point other && Equals(other);
+    }
+
+    public override int GetHashCode()
+    {
+        return Position.GetHashCode();
+    }
 }
