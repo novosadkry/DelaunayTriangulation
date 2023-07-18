@@ -12,14 +12,6 @@ public class Triangulator : MonoBehaviour
 
     void Start()
     {
-        int index = 0;
-
-        foreach (var handler in hullHandlers)
-            handler.point.Index = index++;
-
-        foreach (var handler in holeHandlers)
-            handler.point.Index = index++;
-
         _mesh = new Mesh();
         meshFilter.mesh = _mesh;
     }
@@ -34,12 +26,9 @@ public class Triangulator : MonoBehaviour
             .Select(x => x.point)
             .ToList();
 
-        _mesh.vertices = hull.Concat(hole)
-            .Select(x => x.Position)
-            .ToArray();
-
-        _mesh.triangles = EarClipHelper
-            .Solve(hull, hole)
-            .ToArray();
+        var result = EarClipHelper.Solve(hull, hole);
+        _mesh.vertices = result.vertices;
+        _mesh.triangles = result.triangles;
+        _mesh.uv = result.uvs;
     }
 }

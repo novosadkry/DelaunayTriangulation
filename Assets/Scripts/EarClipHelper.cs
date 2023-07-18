@@ -7,10 +7,10 @@ public class EarClipHelper
     // Source: https://stackoverflow.com/a/9755252
     private static bool IsInsideTriangle(Triangle triangle, Point point)
     {
-        Vector2 p = point.Position;
-        Vector2 a = triangle.a.Position;
-        Vector2 b = triangle.b.Position;
-        Vector2 c = triangle.c.Position;
+        Vector2 p = point;
+        Vector2 a = triangle.a;
+        Vector2 b = triangle.b;
+        Vector2 c = triangle.c;
 
         if (p == a || p == b || p == c)
             return false;
@@ -31,8 +31,8 @@ public class EarClipHelper
 
     private static bool IsConvex(Triangle triangle)
     {
-        var ba = triangle.a.Position - triangle.b.Position;
-        var bc = triangle.c.Position - triangle.b.Position;
+        var ba = triangle.a - triangle.b;
+        var bc = triangle.c - triangle.b;
 
         var inner = Vector2.SignedAngle(ba, bc);
         if (inner < 0) inner += 360;
@@ -110,6 +110,8 @@ public class EarClipHelper
         foreach (var point in hole)
             polygon.AddLast(point);
 
+        PreprocessPoints(polygon);
+
         var projected = ProjectPolygon2D(polygon, normal);
         polygon.Clear();
 
@@ -146,7 +148,7 @@ public class EarClipHelper
         var holeNode = hullNode.Next;
         while (holeNode != null)
         {
-            var dist = (holeNode.Value.Position - hullNode.Value.Position).sqrMagnitude;
+            var dist = (holeNode.Value - hullNode.Value).sqrMagnitude;
 
             if (dist < minDist)
             {
@@ -160,12 +162,38 @@ public class EarClipHelper
         return closest;
     }
 
-    public static List<int> Solve(List<Point> hull, List<Point> hole)
+    private static void PreprocessPoints(LinkedList<Point> polygon)
     {
-        var result = new List<int>();
+        int index = 0;
+
+        var node = polygon.First;
+        while (node != null)
+        {
+            var p = node.Value;
+
+            p.Index = index++;
+            node.Value = p;
+
+            node = node.Next;
+        }
+    }
+
+    public static TriangulationResult Solve(List<Point> hull, List<Point> hole)
+    {
         var polygon = CombineHullWithHole(
             new LinkedList<Point>(hull),
             new LinkedList<Point>(hole));
+
+        var vertices = hull.Concat(hole)
+            .Select(x => x.Position)
+            .ToArray();
+
+        var uvs = polygon
+            .Select(x => (Vector2)x)
+            .Distinct()
+            .ToArray();
+
+        var triangles = new List<int>();
 
         while (polygon.Count >= 3)
         {
@@ -183,9 +211,10 @@ public class EarClipHelper
                     if (!TriangleContainsPoints(tri, polygon))
                     {
                         polygon.Remove(b);
-                        result.Add(a.Value.Index);
-                        result.Add(b.Value.Index);
-                        result.Add(c.Value.Index);
+
+                        triangles.Add(a.Value.Index);
+                        triangles.Add(b.Value.Index);
+                        triangles.Add(c.Value.Index);
 
                         hasRemovedEar = true;
                         break;
@@ -198,10 +227,10 @@ public class EarClipHelper
             if (!hasRemovedEar)
             {
                 Debug.LogError("Triangulation error");
-                return result;
+                break;
             }
         }
 
-        return result;
+        return new TriangulationResult(vertices, uvs, triangles.ToArray());
     }
 }

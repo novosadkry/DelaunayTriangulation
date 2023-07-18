@@ -7,7 +7,7 @@ public struct Point
     public int Index { get; set; }
     public Vector3 Position { get; set; }
 
-    public Point(int index, Vector3 position)
+    public Point(Vector3 position, int index = -1)
     {
         Index = index;
         Position = position;
@@ -26,5 +26,25 @@ public struct Point
     public override int GetHashCode()
     {
         return Position.GetHashCode();
+    }
+
+    public static implicit operator Vector3(Point p)
+    {
+        return p.Position;
+    }
+
+    public static implicit operator Vector2(Point p)
+    {
+        return p.Position;
+    }
+
+    public static Vector3 operator +(Point p1, Point p2)
+    {
+        return ((Vector3)p1) + ((Vector3)p2);
+    }
+
+    public static Vector3 operator -(Point p1, Point p2)
+    {
+        return ((Vector3)p1) - ((Vector3)p2);
     }
 }
