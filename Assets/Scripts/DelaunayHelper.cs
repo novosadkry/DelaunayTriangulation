@@ -7,26 +7,26 @@ public class DelaunayHelper
 {
     public class PointBounds
     {
-        public float maxX;
-        public float minX;
-        public float maxY;
-        public float minY;
+        public Vector3 Max { get; set; }
+        public Vector3 Min { get; set; }
+        public Vector3 Center => (Max + Min) * 0.5f;
 
-        public PointBounds(float maxX, float minX, float maxY, float minY)
+        public PointBounds(Vector3 min, Vector3 max)
         {
-            this.maxX = maxX;
-            this.minX = minX;
-            this.maxY = maxY;
-            this.minY = minY;
+            Min = min;
+            Max = max;
         }
     }
 
     /// <summary> Generates a 'Supra/Super Triangle' which encapsulates all points held within set bounds </summary>
     public static Triangle GenerateSupraTriangle(PointBounds bounds)
     {
-        var dMax = Mathf.Max(bounds.maxX - bounds.minX, bounds.maxY - bounds.minY) * 3.0f;
-        var xCen = (bounds.minX + bounds.maxX) * 0.5f;
-        var yCen = (bounds.minY + bounds.maxY) * 0.5f;
+        var max = bounds.Max;
+        var min = bounds.Min;
+
+        var dMax = Mathf.Max(max.x - min.x, max.y - min.y) * 3.0f;
+        var xCen = (min.y + max.x) * 0.5f;
+        var yCen = (min.y + max.y) * 0.5f;
 
         ///The float 0.866 is an arbitrary value determined for optimum supra triangle conditions.
         var x1 = xCen - 0.866f * dMax;
@@ -50,49 +50,68 @@ public class DelaunayHelper
     /// <summary> Returns a set of bounds encolsing a point set </summary>
     public static PointBounds GetPointBounds(List<Point> points)
     {
-        var minX = Mathf.Infinity;
-        var minY = Mathf.Infinity;
-        var maxX = Mathf.NegativeInfinity;
-        var maxY = Mathf.NegativeInfinity;
+        var min = Vector3.positiveInfinity;
+        var max = Vector3.negativeInfinity;
 
         foreach (Vector3 p in points)
         {
-            minX = Mathf.Min(p.x, minX);
-            minY = Mathf.Min(p.y, minY);
-            maxX = Mathf.Max(p.x, maxX);
-            maxY = Mathf.Max(p.y, maxY);
+            min.x = Mathf.Min(p.x, min.x);
+            min.y = Mathf.Min(p.y, min.y);
+            min.z = Mathf.Min(p.z, min.z);
+
+            max.x = Mathf.Max(p.x, max.x);
+            max.y = Mathf.Max(p.y, max.y);
+            max.z = Mathf.Max(p.z, max.z);
         }
 
-        return new PointBounds(minX, minY, maxX, maxY);
+        return new PointBounds(min, max);
     }
 
-    private static List<Point> ProjectPolygon2D(List<Point> polygon, Vector3 normal)
+    private static void ProjectPolygon2D(List<Point> polygon, PointBounds bounds, Vector3 normal)
     {
-        var projected = new List<Point>();
+        var m = GetRotationMatrix(bounds, normal);
 
-        foreach (var point in polygon)
+        for (int i = 0; i < polygon.Count; i++)
         {
-            var a = point.Position;
-            var q = Quaternion.FromToRotation(normal, Vector3.forward);
-
-            var p = point;
-            p.Position = q * a;
-
-            projected.Add(p);
+            var p = polygon[i];
+            p.Position = m.MultiplyPoint3x4(p);
+            polygon[i] = p;
         }
-
-        return projected;
     }
 
-    // Triangulates a set of points utilising the Bowyer Watson Delaunay technique
-    public static List<Triangle> Delaun(List<Point> points, Vector3 normal)
+    private static Matrix4x4 GetRotationMatrix(PointBounds bounds, Vector3 normal)
     {
-        points = ProjectPolygon2D(points, normal);
+        var c = bounds.Center;
+        var q = Quaternion.FromToRotation(normal, Vector3.forward);
+        return Matrix4x4.Translate(c) * Matrix4x4.Rotate(q) * Matrix4x4.Translate(-c);
+    }
 
+    private static Vector3 GetPolygonNormal(List<Point> polygon)
+    {
+        var normal = Vector3.zero;
+
+        for (var i = 0; i < polygon.Count; i++)
+        {
+            var j = (i + 1) % polygon.Count;
+
+            var a = polygon[i].Position;
+            var b = polygon[j].Position;
+
+            normal.x += (a.y - b.y) * (a.z + b.z);
+            normal.y += (a.z - b.z) * (a.x + b.x);
+            normal.z += (a.x - b.x) * (a.y + b.y);
+        }
+
+        return normal;
+    }
+
+    // Triangulates a set of points utilising the Bowyer-Watson Delaunay algorithm
+    public static List<Triangle> Delaun(List<Point> points)
+    {
         // Create an empty triangle list
         var triangles = new List<Triangle>();
 
-        // Generate supra triangle to ecompass all points and add it to the empty triangle list
+        // Generate supra triangle to encompass all points and add it to the empty triangle list
         var bounds = GetPointBounds(points);
         var supraTriangle = GenerateSupraTriangle(bounds);
         triangles.Add(supraTriangle);
@@ -111,9 +130,8 @@ public class DelaunayHelper
                 var circumRadius = triangle.ComputeCircumRadius();
 
                 var dist = Vector2.Distance(p, circumCentre);
-                if (dist < circumRadius) {
+                if (dist < circumRadius)
                     badTriangles.Add(triangle);
-                }
             }
 
             // Construct a polygon from unique edges, i.e. ignoring duplicate edges inclusively
@@ -128,14 +146,12 @@ public class DelaunayHelper
                     var rejectEdge = false;
                     for (var t = 0; t < badTriangles.Count; t++)
                     {
-                        if (t != i && badTriangles[t].ContainsEdge(edges[j])){
+                        if (t != i && badTriangles[t].ContainsEdge(edges[j]))
                             rejectEdge = true;
-                        }
                     }
 
-                    if (!rejectEdge) {
+                    if (!rejectEdge)
                         polygon.Add(edges[j]);
-                    }
                 }
             }
 
@@ -194,7 +210,12 @@ public class DelaunayHelper
 
     public static TriangulationResult Solve(List<Point> hull)
     {
-        var triangulation = Delaun(hull, Vector3.forward);
+        var normal = GetPolygonNormal(hull);
+        var bounds = GetPointBounds(hull);
+
+        ProjectPolygon2D(hull, bounds, normal);
+
+        var triangulation = Delaun(hull);
         var vertexCount = triangulation.Count * 3;
 
         var vertices = new Vector3[vertexCount];
@@ -203,17 +224,18 @@ public class DelaunayHelper
 
         var vertexIndex = 0;
         var triangleIndex = 0;
-        for (var i = 0; i < triangulation.Count; i++)
+
+        var m = GetRotationMatrix(bounds, normal).inverse;
+
+        foreach (var triangle in triangulation)
         {
-            var triangle = triangulation[i];
+            vertices[vertexIndex] = m.MultiplyPoint3x4(triangle.a);
+            vertices[vertexIndex + 1] = m.MultiplyPoint3x4(triangle.b);
+            vertices[vertexIndex + 2] = m.MultiplyPoint3x4(triangle.c);
 
-            vertices[vertexIndex] = triangle.a;
-            vertices[vertexIndex + 1] = triangle.b;
-            vertices[vertexIndex + 2] = triangle.c;
-
-            uvs[vertexIndex] = triangle.a;
-            uvs[vertexIndex + 1] = triangle.b;
-            uvs[vertexIndex + 2] = triangle.c;
+            uvs[vertexIndex] = m.MultiplyPoint3x4(triangle.a);
+            uvs[vertexIndex + 1] = m.MultiplyPoint3x4(triangle.b);
+            uvs[vertexIndex + 2] = m.MultiplyPoint3x4(triangle.c);
 
             triangles[triangleIndex] = vertexIndex + 2;
             triangles[triangleIndex + 1] = vertexIndex + 1;
