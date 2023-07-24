@@ -123,6 +123,10 @@ public class EarClipHelper
             hullNode = hullNode.Next;
         }
 
+        // Skip bridging if there is no hole
+        if (hole.Count == 0)
+            return polygon;
+
         // At this point, hullNode contains first hole node
         // so we take a step back
         hullNode = hullNode!.Previous!;
