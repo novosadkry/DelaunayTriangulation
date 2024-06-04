@@ -28,12 +28,12 @@ public struct Point
         return Position.GetHashCode();
     }
 
-    public static implicit operator Vector3(Point p)
+    public static explicit operator Vector3(Point p)
     {
         return p.Position;
     }
 
-    public static implicit operator Vector2(Point p)
+    public static explicit operator Vector2(Point p)
     {
         return p.Position;
     }

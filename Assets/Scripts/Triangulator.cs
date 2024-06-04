@@ -26,7 +26,7 @@ public class Triangulator : MonoBehaviour
             .Select(x => x.point)
             .ToList();
 
-        var result = DelaunayHelper.Solve(hull);
+        var result = EarClipHelper.Solve(hull, hole);
         _mesh.vertices = result.vertices;
         _mesh.triangles = result.triangles;
         _mesh.uv = result.uvs;
